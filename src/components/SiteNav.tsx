@@ -2,8 +2,8 @@ import { Link, useLocation } from "react-router";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
-  { to: "/generator", label: "generator" },
-  { to: "/seeds", label: "seed lab" },
+  { to: "/generator", label: "Editor" },
+  { to: "/seeds", label: "Seed Lab" },
 ];
 
 export function SiteNav() {
@@ -11,8 +11,11 @@ export function SiteNav() {
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-[1200px] items-center justify-between px-4">
-        <Link to="/" className="flex items-center gap-2 font-mono text-[15px] font-bold text-foreground">
-          <span className="text-emerald-700">▚</span> mcgen
+        <Link
+          to="/"
+          className="flex items-center gap-2 font-mono text-[15px] font-bold tracking-tight text-foreground"
+        >
+          <span className="text-emerald-700">▚</span> MC Command Pro
         </Link>
         <nav className="flex items-center gap-1">
           {LINKS.map((link) => (

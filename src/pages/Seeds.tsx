@@ -79,15 +79,15 @@ export default function Seeds() {
       <main className="mx-auto max-w-[1200px] px-4 py-10">
         <div className="mb-8">
           <p className="tick-label mb-2">
-            <span className="text-amber-700">//</span> seed lab — v1.0
+            <span className="text-amber-700">//</span> seed lab · internal tool
           </p>
           <h1 className="font-mono text-3xl font-bold tracking-tight text-foreground">
             GENERATE WORLD SEEDS<span className="text-amber-700">_</span>
           </h1>
           <p className="mt-2 max-w-xl font-mono text-[13px] leading-6 text-muted-foreground">
-            Cryptographically random 63-bit Java seeds for Minecraft worlds.
-            Generate, copy, and paste straight into the “Seed” field of the
-            world-creation screen.
+            Internal world-seed generator for Minecraft. Produces
+            cryptographically random 63-bit Java seeds — generate, copy, and
+            paste straight into the “Seed” field of the world-creation screen.
           </p>
         </div>
 
@@ -125,11 +125,12 @@ export default function Seeds() {
                 className="gap-2 font-mono text-[13px]"
               >
                 <Dices className="size-4" />
-                $ generate seed{count > 1 ? "s" : ""}
+                $ generate
               </Button>
               <p className="font-mono text-[10px] leading-5 text-muted-foreground">
                 <span className="text-amber-700">//</span> uses
-                crypto.getRandomValues — no patterns, no bias, no servers.
+                crypto.getRandomValues — no patterns, no bias, and nothing is
+                sent to a server.
               </p>
             </div>
           </div>

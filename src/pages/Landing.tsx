@@ -4,7 +4,12 @@ import { EFFECTS } from "@/data/mc/effects";
 import { ENTITIES } from "@/data/mc/entities";
 import { ITEMS } from "@/data/mc/items";
 import { ENCHANTMENTS } from "@/data/mc/enchantments";
-import { CATEGORIES, GENERATORS } from "@/components/generator/registry";
+import {
+  CATEGORIES,
+  GENERATORS,
+  generatorById,
+  type GeneratorId,
+} from "@/components/generator/registry";
 import { motion } from "framer-motion";
 import { ArrowRight, Copy, TerminalSquare } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -44,6 +49,7 @@ export default function Landing() {
   const typed = useTypewriter(HERO_COMMAND);
   const done = typed.length >= HERO_COMMAND.length;
   const [teaserSeed, setTeaserSeed] = useState<bigint | null>(null);
+  const [catalogQuery, setCatalogQuery] = useState("");
 
   useEffect(() => {
     const buf = new Uint32Array(2);
@@ -52,12 +58,30 @@ export default function Landing() {
     setTeaserSeed(v);
   }, []);
 
+  const q = catalogQuery.trim().toLowerCase();
+  const catalogMatches = (id: GeneratorId) => {
+    if (!q) return true;
+    const def = generatorById.get(id);
+    if (!def) return false;
+    return (
+      def.label.toLowerCase().includes(q) ||
+      def.id.includes(q) ||
+      def.description.toLowerCase().includes(q)
+    );
+  };
+  const visibleCategories = CATEGORIES.map((cat) => ({
+    ...cat,
+    gens: GENERATORS.filter((g) => g.category === cat.id && catalogMatches(g.id)),
+  })).filter((cat) => cat.gens.length > 0);
+  const totalMatches = GENERATORS.filter((g) => catalogMatches(g.id)).length;
+
   return (
     <div className="min-h-screen bg-background">
       {/* Status strip */}
       <div className="border-b border-border bg-secondary/50">
         <p className="mx-auto max-w-[1200px] px-4 py-1.5 text-center font-mono text-[10px] tracking-[0.12em] text-muted-foreground uppercase">
-          <span className="text-amber-700">//</span> mcgen v1.0 — minecraft command generator · mc 1.8 → 1.21 · no mods required
+          <span className="text-amber-700">//</span> MC Command Pro — internal
+          Minecraft command editor · MC 1.8 → 1.21 · no mods required
         </p>
       </div>
 
@@ -69,36 +93,37 @@ export default function Landing() {
           <div className="mx-auto grid max-w-[1200px] items-center gap-10 px-4 py-16 lg:grid-cols-[1.05fr_1fr] lg:py-24">
             <motion.div initial="hidden" animate="show" variants={fadeUp}>
               <p className="mb-4 font-mono text-[12px] tracking-[0.14em] text-emerald-700 uppercase">
-                $ craft commands, not syntax
+                $ command editor — internal build
               </p>
               <h1 className="font-mono text-4xl leading-[1.08] font-bold tracking-tight text-foreground sm:text-5xl">
-                GENERATE THE
+                THE PERFECT COMMAND,
                 <br />
-                PERFECT COMMAND<span className="text-emerald-700">.</span>
+                EVERY TIME<span className="text-emerald-700">.</span>
               </h1>
               <p className="mt-5 max-w-md font-mono text-[13px] leading-6 text-muted-foreground">
-                A point-and-click command builder for Minecraft — the way
-                MCStacker does it. Pick a generator, tweak the options, and the
-                command rewrites itself live. For every version from 1.8 to
-                1.21.
+                MC Command Pro is our internal point-and-click command editor
+                for Minecraft. Choose a generator from the catalog, tune the
+                options, and the command rewrites itself live for any version
+                from 1.8 to 1.21.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link
                   to="/generator"
                   className="group inline-flex h-10 items-center gap-2 rounded-md bg-emerald-800 px-5 font-mono text-[13px] font-semibold text-emerald-50 transition-colors hover:bg-emerald-900"
                 >
-                  $ launch generator
+                  $ open the editor
                   <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
                 </Link>
                 <Link
                   to="/seeds"
                   className="inline-flex h-10 items-center gap-2 rounded-md border border-amber-700/40 bg-amber-700/5 px-5 font-mono text-[13px] text-amber-800 transition-colors hover:bg-amber-700/15"
                 >
-                  $ open seed lab
+                  $ seed lab
                 </Link>
               </div>
               <p className="mt-6 font-mono text-[11px] text-muted-foreground">
-                <span className="text-emerald-700">✓</span> free · runs entirely in your browser
+                <span className="text-emerald-700">✓</span> runs entirely in the
+                browser — nothing leaves your machine
               </p>
             </motion.div>
 
@@ -116,7 +141,7 @@ export default function Landing() {
                     <span className="size-2 rounded-full bg-[oklch(0.65_0.1_85)]" />
                     <span className="size-2 rounded-full bg-[oklch(0.55_0.1_150)]" />
                   </span>
-                  <span className="tick-label ml-1">mcgen — give</span>
+                  <span className="tick-label ml-1">mc command pro — give</span>
                 </div>
                 <span className="flex items-center gap-1.5 font-mono text-[10px] font-medium text-emerald-700">
                   <span className="size-1.5 animate-pulse rounded-full bg-emerald-600" />
@@ -161,9 +186,9 @@ export default function Landing() {
         <section className="border-b border-border">
           <div className="mx-auto grid max-w-[1200px] grid-cols-2 divide-x divide-border px-4 sm:grid-cols-4">
             {[
-              { value: `${GENERATORS.length}`, label: "generators" },
+              { value: `${GENERATORS.length}`, label: "command generators" },
               { value: "1.8–1.21", label: "versions supported" },
-              { value: `${ITEMS.length}+`, label: "items" },
+              { value: `${ITEMS.length}+`, label: "items in catalog" },
               { value: `${ENTITIES.length}+`, label: "entities" },
             ].map((stat) => (
               <div key={stat.label} className="px-4 py-5 text-center sm:py-6">
@@ -176,32 +201,57 @@ export default function Landing() {
 
         {/* ── Generator catalog ─────────────────────────────────────────── */}
         <section className="mx-auto max-w-[1200px] px-4 py-16">
-          <div className="mb-8 flex items-end justify-between gap-4">
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="tick-label mb-2">
                 <span className="text-emerald-700">//</span> 01 · catalog
               </p>
               <h2 className="font-mono text-2xl font-bold tracking-tight text-foreground">
-                EVERY GENERATOR, ALL AT ONCE
+                THE COMMAND CATALOG
               </h2>
+              <p className="mt-2 max-w-lg font-mono text-[12px] leading-5 text-muted-foreground">
+                Browse by category or search across every generator. Each entry
+                opens straight into the editor.
+              </p>
             </div>
             <Link
               to="/generator"
               className="hidden items-center gap-1.5 font-mono text-[12px] text-emerald-700 hover:underline sm:flex"
             >
-              open the full tool <ArrowRight className="size-3.5" />
+              open the editor <ArrowRight className="size-3.5" />
             </Link>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {CATEGORIES.map((cat) => {
-              const gens = GENERATORS.filter((g) => g.category === cat.id);
-              return (
+
+          <div className="relative mb-6 max-w-md">
+            <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 font-mono text-[13px] text-muted-foreground">
+              ▸
+            </span>
+            <input
+              type="text"
+              value={catalogQuery}
+              onChange={(e) => setCatalogQuery(e.target.value)}
+              placeholder="search the catalog…"
+              aria-label="Search the generator catalog"
+              className="h-10 w-full rounded-md border border-input bg-card pr-14 pl-8 font-mono text-[13px] shadow-none outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+            />
+            <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 font-mono text-[10px] text-muted-foreground">
+              {totalMatches}/{GENERATORS.length}
+            </span>
+          </div>
+
+          {visibleCategories.length === 0 ? (
+            <p className="rounded-md border border-dashed border-border px-4 py-8 text-center font-mono text-[12px] text-muted-foreground">
+              // no generators match “{catalogQuery}” — try “summon”, “enchant”, or “weather”
+            </p>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {visibleCategories.map((cat) => (
                 <div key={cat.id} className="panel flex flex-col p-4">
                   <p className="tick-label mb-3 border-b border-dashed border-border pb-2">
                     {cat.label}
                   </p>
                   <ul className="flex flex-col gap-0.5">
-                    {gens.map((g) => (
+                    {cat.gens.map((g) => (
                       <li key={g.id}>
                         <Link
                           to={`/generator?g=${g.id}`}
@@ -219,9 +269,9 @@ export default function Landing() {
                     ))}
                   </ul>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* ── Features ──────────────────────────────────────────────────── */}
@@ -231,7 +281,7 @@ export default function Landing() {
               <span className="text-emerald-700">//</span> 02 · features
             </p>
             <h2 className="mb-10 font-mono text-2xl font-bold tracking-tight text-foreground">
-              BUILT LIKE A TERMINAL —<br className="sm:hidden" /> THINKING LIKE A BUILDER
+              ENGINEERED FOR PRECISION
             </h2>
             <div className="grid gap-4 lg:grid-cols-3">
               {/* Live edit */}
@@ -247,7 +297,8 @@ export default function Landing() {
                 </p>
                 <p className="mt-3 font-mono text-[12px] leading-6 text-muted-foreground">
                   Every checkbox and keystroke rewrites the command instantly.
-                  Enchantments, display names, NBT — no “generate” button, ever.
+                  Enchantments, display names, NBT — there is no “generate”
+                  button, and no room for typos.
                 </p>
                 <div className="mt-4 rounded-md border border-border bg-card p-3 font-mono text-[11px] leading-5">
                   <p className="text-muted-foreground">
@@ -275,7 +326,7 @@ export default function Landing() {
                 </p>
                 <p className="mt-3 font-mono text-[12px] leading-6 text-muted-foreground">
                   Flip between modern (1.13+) and legacy (1.12-) syntax. Item
-                  ids, data values, NBT formats and command structure adapt
+                  ids, data values, NBT formats, and command structure adapt
                   automatically.
                 </p>
                 <div className="mt-4 rounded-md border border-border bg-card p-3 font-mono text-[11px] leading-5">
@@ -304,9 +355,9 @@ export default function Landing() {
                   <TerminalSquare className="size-4" /> FULL ITEM INDEX
                 </p>
                 <p className="mt-3 font-mono text-[12px] leading-6 text-muted-foreground">
-                  {ITEMS.length} items, {ENTITIES.length} entities, {EFFECTS.length} effects
-                  and {ENCHANTMENTS.length} enchantments — every one searchable
-                  by name or id.
+                  {ITEMS.length} items, {ENTITIES.length} entities, {EFFECTS.length}
+                  effects, and {ENCHANTMENTS.length} enchantments — every one
+                  searchable by name or id.
                 </p>
                 <div className="mt-4 rounded-md border border-border bg-card p-3 font-mono text-[11px] leading-5">
                   <p className="text-muted-foreground">
@@ -333,11 +384,12 @@ export default function Landing() {
                   <span className="text-amber-700">//</span> 03 · seed lab
                 </p>
                 <h2 className="font-mono text-2xl font-bold tracking-tight text-foreground">
-                  NEED A WORLD? GENERATE A SEED.
+                  WORLD SEEDS, ON DEMAND
                 </h2>
                 <p className="mt-2 max-w-lg font-mono text-[13px] leading-6 text-muted-foreground">
-                  Cryptographic random 63-bit Java seeds — the kind Minecraft
-                  actually accepts. Hit generate, copy, paste.
+                  Generate cryptographically random Java seeds for world
+                  creation and copy them straight into the game — no guessing,
+                  no third-party tools.
                 </p>
                 <Link
                   to="/seeds"
@@ -361,20 +413,20 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* ── How it works ──────────────────────────────────────────────── */}
+        {/* ── Workflow ──────────────────────────────────────────────────── */}
         <section className="border-t border-border">
           <div className="mx-auto max-w-[1200px] px-4 py-16">
             <p className="tick-label mb-2">
-              <span className="text-emerald-700">//</span> 04 · usage
+              <span className="text-emerald-700">//</span> 04 · workflow
             </p>
             <h2 className="mb-10 font-mono text-2xl font-bold tracking-tight text-foreground">
-              THREE COMMANDS AND YOU&apos;RE DONE
+              THREE STEPS, ZERO GUESSWORK
             </h2>
             <div className="grid gap-4 sm:grid-cols-3">
               {[
-                { step: "01", title: "pick a generator", body: "Give, summon, fill, execute — everything from the sidebar." },
-                { step: "02", title: "set the options", body: "Search items, stack enchantments, type coordinates. Watch the output update live." },
-                { step: "03", title: "copy & paste", body: "One click copies the exact command for your version. Paste into chat or a command block." },
+                { step: "01", title: "select a generator", body: "Choose from the catalog — give, summon, fill, execute, and more." },
+                { step: "02", title: "set the options", body: "Search items, stack enchantments, and set coordinates while the output updates live." },
+                { step: "03", title: "copy into the game", body: "One click copies a version-correct command. Paste into chat or a command block." },
               ].map((s) => (
                 <div key={s.step} className="panel p-5">
                   <p className="font-mono text-[11px] font-bold text-emerald-700">[{s.step}]</p>
@@ -400,7 +452,7 @@ export default function Landing() {
                 to="/generator"
                 className="group inline-flex h-11 items-center gap-2 rounded-md bg-emerald-800 px-6 font-mono text-[14px] font-semibold text-emerald-50 transition-colors hover:bg-emerald-900"
               >
-                $ launch generator
+                $ open the editor
                 <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
               <Link
@@ -418,14 +470,18 @@ export default function Landing() {
       <footer className="border-t border-border bg-secondary/40">
         <div className="mx-auto flex max-w-[1200px] flex-col items-center justify-between gap-3 px-4 py-6 font-mono text-[11px] text-muted-foreground sm:flex-row">
           <p>
-            <span className="text-emerald-700">▚</span> mcgen — minecraft command generator
+            <span className="text-emerald-700">▚</span> MC Command Pro — internal
+            Minecraft command editor
           </p>
           <p className="flex items-center gap-3">
-            <Link to="/generator" className="hover:text-foreground">generator</Link>
-            <Link to="/seeds" className="hover:text-foreground">seed lab</Link>
+            <Link to="/generator" className="hover:text-foreground">Editor</Link>
+            <Link to="/seeds" className="hover:text-foreground">Seed Lab</Link>
             <Link to="/auth" className="hover:text-foreground">sign in</Link>
           </p>
         </div>
+        <p className="border-t border-border/60 py-2 text-center font-mono text-[10px] text-muted-foreground/80">
+          © 2026 — for internal team use only
+        </p>
       </footer>
     </div>
   );

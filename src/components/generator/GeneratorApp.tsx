@@ -129,7 +129,7 @@ export default function GeneratorApp() {
   const active = generatorById.get(activeId)!;
 
   const [version, setVersion] = useState<string>(() => {
-    const saved = localStorage.getItem("mcgen-version") ?? "";
+    const saved = localStorage.getItem("mcp-version") ?? "";
     return VERSION_GROUPS.flatMap((g) => g.versions).includes(saved) ? saved : DEFAULT_VERSION;
   });
   const legacy = isLegacyVersion(version);
@@ -145,7 +145,7 @@ export default function GeneratorApp() {
   );
 
   useEffect(() => {
-    localStorage.setItem("mcgen-version", version);
+    localStorage.setItem("mcp-version", version);
   }, [version]);
 
   useEffect(() => {
@@ -155,6 +155,19 @@ export default function GeneratorApp() {
   const selectGenerator = (id: string) => {
     setSearchParams(id === "give" ? {} : { g: id });
   };
+
+  const [filter, setFilter] = useState("");
+  const matchesFilter = (id: GeneratorId) => {
+    const q = filter.trim().toLowerCase();
+    if (!q) return true;
+    const def = generatorById.get(id)!;
+    return (
+      def.label.toLowerCase().includes(q) ||
+      def.id.includes(q) ||
+      def.description.toLowerCase().includes(q)
+    );
+  };
+  const matchedCount = GENERATORS.filter((g) => matchesFilter(g.id)).length;
 
   const command = useMemo(() => {
     const fn = builders[activeId] as (
@@ -169,10 +182,10 @@ export default function GeneratorApp() {
       {/* Top bar */}
       <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-[1400px] items-center justify-between gap-3 px-4">
-          <Link to="/" className="flex items-center gap-2 font-mono text-[15px] font-bold text-foreground">
-            <span className="text-emerald-700">▚</span> mcgen
+          <Link to="/" className="flex items-center gap-2 font-mono text-[15px] font-bold tracking-tight text-foreground">
+            <span className="text-emerald-700">▚</span> MC Command Pro
             <span className="hidden text-[10px] font-normal tracking-[0.14em] text-muted-foreground uppercase sm:inline">
-              command generator
+              internal command editor
             </span>
           </Link>
           <div className="flex items-center gap-2">
@@ -180,7 +193,7 @@ export default function GeneratorApp() {
               to="/seeds"
               className="hidden rounded-md border border-amber-700/40 bg-amber-700/5 px-2.5 py-1.5 font-mono text-[12px] text-amber-800 transition-colors hover:bg-amber-700/15 sm:block"
             >
-              seed lab
+              Seed Lab
             </Link>
             <Select value={version} onValueChange={setVersion}>
               <SelectTrigger className="h-8 w-[130px] font-mono text-[12px] shadow-none">
@@ -206,38 +219,66 @@ export default function GeneratorApp() {
       <main className="mx-auto max-w-[1400px] px-4 py-5">
         <div className="grid items-start gap-4 lg:grid-cols-[210px_minmax(0,1fr)_minmax(0,1.05fr)]">
           {/* Generator sidebar */}
-          <aside className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:gap-5 lg:overflow-visible lg:pb-0">
-            {CATEGORIES.map((cat) => {
-              const gens = GENERATORS.filter((g) => g.category === cat.id);
-              return (
-                <div key={cat.id} className="flex shrink-0 flex-col gap-1">
-                  <span className="tick-label hidden px-2 lg:block">{cat.label}</span>
-                  <div className="flex gap-1 lg:flex-col">
-                    {gens.map((g) => {
-                      const isActive = g.id === activeId;
-                      return (
-                        <button
-                          key={g.id}
-                          type="button"
-                          onClick={() => selectGenerator(g.id)}
-                          className={cn(
-                            "rounded-md border px-3 py-1.5 text-left font-mono text-[12px] whitespace-nowrap transition-colors",
-                            isActive
-                              ? "border-emerald-700/50 bg-emerald-700/10 font-semibold text-emerald-800"
-                              : "border-transparent text-foreground hover:bg-accent hover:text-accent-foreground",
-                          )}
-                        >
-                          <span className={cn("mr-1.5", isActive ? "text-emerald-700" : "text-muted-foreground/50")}>
-                            {isActive ? "▸" : "·"}
-                          </span>
-                          {g.label}
-                        </button>
-                      );
-                    })}
+          <aside className="flex flex-col gap-2">
+            <div className="relative lg:pr-1">
+              <span className="pointer-events-none absolute top-1/2 left-2 -translate-y-1/2 text-[12px] text-muted-foreground">
+                ▸
+              </span>
+              <input
+                type="text"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                placeholder="filter generators…"
+                aria-label="Filter generators"
+                className="h-8 w-full rounded-md border border-input bg-card pr-2 pl-6 font-mono text-[12px] shadow-none outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+              />
+              {filter.trim() && (
+                <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 font-mono text-[10px] text-muted-foreground">
+                  {matchedCount}/{GENERATORS.length}
+                </span>
+              )}
+            </div>
+            <div className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:gap-5 lg:overflow-visible lg:pb-0">
+              {CATEGORIES.map((cat) => {
+                const gens = GENERATORS.filter(
+                  (g) => g.category === cat.id && matchesFilter(g.id),
+                );
+                if (gens.length === 0) return null;
+                return (
+                  <div key={cat.id} className="flex shrink-0 flex-col gap-1">
+                    <span className="tick-label hidden px-2 lg:block">{cat.label}</span>
+                    <div className="flex gap-1 lg:flex-col">
+                      {gens.map((g) => {
+                        const isActive = g.id === activeId;
+                        return (
+                          <button
+                            key={g.id}
+                            type="button"
+                            onClick={() => selectGenerator(g.id)}
+                            className={cn(
+                              "rounded-md border px-3 py-1.5 text-left font-mono text-[12px] whitespace-nowrap transition-colors",
+                              isActive
+                                ? "border-emerald-700/50 bg-emerald-700/10 font-semibold text-emerald-800"
+                                : "border-transparent text-foreground hover:bg-accent hover:text-accent-foreground",
+                            )}
+                          >
+                            <span className={cn("mr-1.5", isActive ? "text-emerald-700" : "text-muted-foreground/50")}>
+                              {isActive ? "▸" : "·"}
+                            </span>
+                            {g.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+              {matchedCount === 0 && (
+                <p className="px-2 py-1 font-mono text-[11px] text-muted-foreground">
+                  // no match for “{filter}”
+                </p>
+              )}
+            </div>
           </aside>
 
           {/* Options panel */}
